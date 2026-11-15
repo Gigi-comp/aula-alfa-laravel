@@ -1,79 +1,34 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Models\User;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\ProductController;
+use App\Http\Middleware\EnsureAdmin;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('admin.users.index');
+    return view('welcome');
+})->middleware('auth')->name('home');
+
+// Autenticação
+Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')
+    ->name('login.store');
+Route::post('logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
+
+// Cadastro (público; um administrador autenticado também pode usar o formulário)
+Route::get('register', [UserController::class, 'register'])->name('register');
+Route::post('store', [UserController::class, 'store'])->name('users.store');
+
+// Todas as rotas administrativas passam pelo mesmo grupo: autenticação + perfil admin.
+Route::middleware(EnsureAdmin::class)->prefix('admin')->group(function () {
+    Route::get('users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::get('user/{user}', [UserController::class, 'show'])->name('admin.user.show');
+    Route::get('user/{user}/edit', [UserController::class, 'edit'])->name('admin.user.edit');
+    Route::put('user/{user}', [UserController::class, 'update'])->name('admin.user.update');
+    Route::put('user/{user}/profile', [UserController::class, 'updateProfile'])->name('admin.user.updateProfile');
+    Route::put('user/{user}/languages', [UserController::class, 'updateLanguages'])->name('admin.user.updateLanguages');
+    Route::delete('user/{user}', [UserController::class, 'destroy'])->name('admin.user.destroy');
 });
-
-Route::get('/admin/users',[UserController::class, 'index'])->name('admin.users.index');
-Route::get('admin/user/{user}' ,[UserController::class, 'show']);
-
-Route::get('/user',[User::class, 'show_user']);
-
-Route::get('/users',[User::class, 'getAll']);
-
-Route::get('/user/{id}', function($id){
-    $user = User::find($id);
-    dd($user);
-
-});
-
-Route::get('/user-create',function(){
-  $user =  User::create([
-    'name' => 'Cristiano',
-    'email' => 'email@email.com',
-    'password' => '12345678'
-  ]);
-
-  dd($user);
-
-});
-
-Route::get('/user-update/{id}',function($id){
-  $user = User::find($id);
-
-  $user->update([
-    'name' => 'Cristiano Herculano Da Silva',
-    'email' => 'email@email.com',
-    'password' => '12345678'
-  ]);
-
-});
-
-Route::get('/user-delete/{id}', function($id){
-   $user = User::find($id);
-   $user->delete();
-   return response()->json(['message'=> 'Usuario deletado']);
-});
-
-Route::get('/user-profile/{id}', function($id){
-    $user = User::with('profile')->find($id);
-    dd($user);
-
-});
-
-Route::get('/user-with-profile', function(){
-   $user = User::create([
-    'name' => 'Cristiano Herculano Da Silva',
-    'email' => 'email@email.com',
-    'password' => '12345678'
-   ]);
-
-   $profile = $user->profile()->create([
-    'type' => 'ADMIN',
-    'description' => 'Administrador de servidor'
-   ]);
-
-   dd($user->load('profile'));
-
-});
-
-
-Route::get('/products',[ProductController::class, 'index']);
-
-Route::get('register', [UserController::class, 'register']);
-Route::post('store', [UserController::class, 'create'])->name('users.store');

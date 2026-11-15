@@ -30,7 +30,12 @@ class User extends Authenticatable
         ];
     }
 
-    public function show_user(int $id)
+    public function isAdmin(): bool
+    {
+        return $this->profile?->type === 'admin';
+    }
+
+    public function show_user($id)
     {
 
         return  User::find($id);
@@ -44,5 +49,9 @@ class User extends Authenticatable
 
     public function profile(){
       return $this->hasOne(Profile::class);
+    }
+    
+    public function languages(){
+      return $this->hasMany(UserLanguages::class);
     }
 }
